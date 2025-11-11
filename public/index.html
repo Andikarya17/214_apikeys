@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Generate API Key</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #3b82f6;
+      --primary-dark: #2563eb;
+      --bg-dark: #0f172a;
+      --glass: rgba(255, 255, 255, 0.05);
+      --border: rgba(255, 255, 255, 0.1);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; }
+    body {
+      min-height: 100vh;
+      background: radial-gradient(circle at top, #1e293b, #0f172a);
+      display: flex; align-items: center; justify-content: center;
+      color: #f1f5f9; padding: 20px;
+    }
+    .container {
+      background: var(--glass);
+      border: 1px solid var(--border);
+      backdrop-filter: blur(20px);
+      padding: 40px; border-radius: 16px;
+      width: 100%; max-width: 420px;
+      box-shadow: 0 0 40px rgba(59, 130, 246, 0.15);
+      animation: fadeIn 0.6s ease-out;
+    }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(15px);} to { opacity: 1; transform: translateY(0);} }
+    .title { font-size: 1.6rem; font-weight: 600; text-align: center; color: #fff; margin-bottom: 25px; }
+    label { font-weight: 500; font-size: 0.9rem; display: block; margin-bottom: 6px; color: #cbd5e1; }
+    input[type="text"], input[type="email"] {
+      width: 100%; padding: 12px 14px; border-radius: 10px;
+      border: 1px solid var(--border); background: rgba(255, 255, 255, 0.08);
+      color: #f8fafc; margin-bottom: 20px; outline: none; transition: 0.2s;
+    }
+    input:focus { border-color: var(--primary); box-shadow: 0 0 8px rgba(59, 130, 246, 0.3); }
+    .btn {
+      width: 100%; padding: 12px 0; border-radius: 10px;
+      background: linear-gradient(90deg, var(--primary), var(--primary-dark));
+      border: none; color: white; font-weight: 600; letter-spacing: 0.3px;
+      cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .btn:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(59, 130, 246, 0.4); }
+    .apikey-box {
+      display: none; margin-top: 25px; background: rgba(255, 255, 255, 0.08);
+      border: 1px solid var(--border); padding: 18px; border-radius: 12px;
+      position: relative; text-align: center; word-break: break-all;
+    }
+    .apikey-box.active { display: block; animation: fadeIn 0.5s ease-out; }
+    .apikey-label { color: #93c5fd; font-weight: 500; margin-bottom: 8px; }
+    .apikey-value {
+      font-family: 'Courier New', monospace; background: rgba(0, 0, 0, 0.3);
+      padding: 10px 15px; border-radius: 8px; display: inline-block;
+      color: #f8fafc; font-size: 0.95rem; letter-spacing: 0.5px;
+    }
+    .copy-btn {
+      background: transparent; border: none; color: #60a5fa;
+      cursor: pointer; font-size: 0.9rem; position: absolute;
+      right: 15px; top: 15px; transition: 0.2s;
+    }
+    .copy-btn:hover { color: #93c5fd; transform: scale(1.1); }
+    @media (max-width: 480px) {
+      .container { padding: 30px 25px; } .title { font-size: 1.4rem; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2 class="title">🔑 Generate API Key</h2>
+    <form id="apiForm">
+      <label for="name">Developer Name</label>
+      <input type="text" id="name" placeholder="e.g. Andika Arya" required>
+
+      <label for="email">Email Address</label>
+      <input type="email" id="email" placeholder="e.g. andika@example.com" required>
+
+      <button type="submit" class="btn">Generate Key</button>
+    </form>
+
+    <div class="apikey-box" id="apikeyBox">
+      <button class="copy-btn" id="copyBtn">📋 Copy</button>
+      <div class="apikey-label">Your API Key:</div>
+      <div class="apikey-value" id="apikeyValue"></div>
+    </div>
+  </div>
+
+  <script>
+    const form = document.getElementById('apiForm');
+    const apiBox = document.getElementById('apikeyBox');
+    const apiValue = document.getElementById('apikeyValue');
+    const copyBtn = document.getElementById('copyBtn');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      // ambil data input
+      const name = document.getElementById('name').value;
+      const email = document.getElementById('email').value;
+
+      // disable tombol sementara
+      const button = e.target.querySelector('button');
+      button.disabled = true;
+      button.textContent = 'Generating...';
+
+      try {
+        // kirim POST ke backend /generate
+        const res = await fetch('/generate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, email })
+        });
+
+        const data = await res.json();
+        if (data.success && data.apiKey) {
+          apiValue.textContent = data.apiKey;
+          apiBox.classList.add('active');
+        } else {
+          apiValue.textContent = 'Failed to generate key.';
+          apiBox.classList.add('active');
+        }
+      } catch (err) {
+        console.error(err);
+        apiValue.textContent = 'Server error.';
+        apiBox.classList.add('active');
+      } finally {
+        button.disabled = false;
+        button.textContent = 'Generate Key';
+      }
+    });
+
+    copyBtn.addEventListener('click', () => {
+      navigator.clipboard.writeText(apiValue.textContent);
+      copyBtn.textContent = '✅ Copied!';
+      setTimeout(() => (copyBtn.textContent = '📋 Copy'), 2000);
+    });
+  </script>
+</body>
+</html>
